@@ -3,47 +3,38 @@ import { PetSpecies } from "src/core/enums/pet-species.enum";
 import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 import type { Point } from "typeorm";
 
-@Entity("lost_pet")
-export class LostPet {
+@Entity("found_pets")
+export class FoundPet {
 
     @PrimaryGeneratedColumn() //ID
     id!:number;
 
-    @Column({ type: 'varchar' }) //NAME
-    name!:string;
+    @Column({ type:'enum',enum:PetSpecies }) //SPECIES
+    species!:PetSpecies;
 
-    @Column({
-        type: 'enum',
-        enum: PetSpecies
-    }) //SPECIES
-    species!: PetSpecies;
-
-    @Column({ type:'varchar' }) //BREED
-    breed!:string;
+    @Column({ type:'varchar',nullable:true }) //BREED
+    breed!:string|null;
 
     @Column({ type:'varchar' }) //COLOR
     color!:string;
 
-    @Column({
-        type:'enum',
-        enum: PetSize
-    }) //SIZE
-    size!: PetSize;
+    @Column({ type:'enum',enum:PetSize }) //SIZE
+    size!:PetSize;
 
     @Column({ type:'text' }) //DESCRIPTION
     description!:string;
 
-    @Column({ type:'varchar', nullable:true }) //PHOTO
+    @Column({ type:'varchar',nullable:true }) //PHOTO
     photoUrl!:string|null;
 
-    @Column({ type:'varchar' }) //OWNER NAME
-    ownerName!:string;
+    @Column({ type:'varchar' }) //FINDER NAME
+    finderName!:string;
 
-    @Column({ type:'varchar' }) //OWNER EMAIL
-    ownerEmail!:string;
+    @Column({ type:'varchar' }) //FINDER EMAIL
+    finderEmail!:string;
 
-    @Column({ type:'varchar' }) //OWNER PHONE
-    ownerPhone!:string;
+    @Column({ type:'varchar' }) //FINDER PHONE
+    finderPhone!:string;
 
     @Column({
         type:'geometry',
@@ -55,15 +46,12 @@ export class LostPet {
     @Column({ type:'varchar' }) //ADDRESS
     address!:string;
 
-    @Column({ type:'timestamp' }) //LOST DATE
-    lostDate!:Date;
-    
-    @Column({ type:'boolean', default:true }) //IS ACTIVE
-    isActive!:boolean;
+    @Column({ type:'timestamp' }) //FOUND DATE
+    foundDate!:Date;
 
     @CreateDateColumn({ type:'timestamp' }) //CREATED AT
     createdAt!:Date;
-    
+
     @UpdateDateColumn({ type:'timestamp' }) //UPDATED AT
     updatedAt!:Date;
 }
