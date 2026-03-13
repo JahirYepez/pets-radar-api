@@ -75,7 +75,7 @@ export class LostPetsService {
         await this.lostPetRepository.save(newLostPet);
         const template = generateLostPetEmailTemplate(lostPet);
         const options: EmailOptions = {
-            to: lostPet.ownerEmail,
+            to: "yepezjahir@gmail.com",
             subject: `Reporte de mascota perdida: ${lostPet.name}`,
             html: template
         };

@@ -79,7 +79,7 @@ export class FoundPetsService {
         const template = generateFoundPetEmailTemplate(foundPet);
 
         const options: EmailOptions = {
-            to: foundPet.finderEmail,
+            to: "yepezjahir@gmail.com",
             subject: `Reporte de mascota encontrada`,
             html: template
         };
