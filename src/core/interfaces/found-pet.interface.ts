@@ -13,7 +13,7 @@ export interface FoundPetCDto {
     finderPhone: string;
     lat: number;
     lon: number;
-    addres: string;
+    address: string;
     foundDate: Date;
     createdAt: Date;
     updatedAt: Date;

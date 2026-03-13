@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { generate } from 'rxjs';
 import { FoundPet } from 'src/core/db/entities/found-pets.entity';
 import { LostPet } from 'src/core/db/entities/lost-pets.entity';
 import { EmailOptions } from 'src/core/interfaces/email-options.interface';

@@ -7,6 +7,7 @@ export const dataSourceOptions : DataSourceOptions = {
     host: envs.DB_HOST,
     type: 'postgres',
     port: envs.DB_PORT,
+    username: envs.DB_USER,
     database: envs.DB_NAME,
     password: envs.DB_PASSWORD,
     entities: [
@@ -14,7 +15,7 @@ export const dataSourceOptions : DataSourceOptions = {
         FoundPet
     ],
     synchronize: false,
-    migrations: []
+    migrations: ['dist/core/db/migrations/*']
 }
 
 export const dataSource = new DataSource(dataSourceOptions);
