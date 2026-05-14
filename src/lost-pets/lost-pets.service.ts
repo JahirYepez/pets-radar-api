@@ -7,6 +7,10 @@ import { lostPetCDto } from 'src/core/interfaces/lost-pet.interface';
 import { EmailService } from 'src/email/email.service';
 import { Repository } from 'typeorm';
 import { generateLostPetEmailTemplate } from './templates/lost-pet-email.template';
+import { CacheService } from 'src/cache/cache.service';
+import { logger } from 'src/config/logger';
+
+const CACHE_KEY_ALL_LOST_PETS = 'lost-pets:all';
 
 @Injectable()
 export class LostPetsService {
@@ -15,14 +19,29 @@ export class LostPetsService {
         private readonly lostPetRepository : Repository<LostPet>,
         @InjectRepository(FoundPet)
         private readonly foundPetRepository : Repository<FoundPet>,
-        private readonly emailService : EmailService
+        private readonly emailService : EmailService,
+        private readonly cacheService : CacheService
     ) {}
 
     async getLostPets() : Promise<LostPet[]> {
         try{
-            console.log("[LostPetService] Trayendo todas las mascotas perdidas...");
-            const lostPets = await this.lostPetRepository.find();
-            console.log(`[LostPetService] Se obtuvieron ${lostPets} mascotas perdidas`);
+            logger.info("[LostPetService] Consultando mascotas perdidas en cache...");
+            const data = await this.cacheService.get<LostPet[]>(CACHE_KEY_ALL_LOST_PETS);
+            
+            if (data && data.length > 0) {
+                logger.info("[LostPetService] Mascotas perdidas encontradas en cache");
+                return data;
+            }
+
+            logger.info("[LostPetService] Trayendo todas las mascotas perdidas activas...");
+            const lostPets = await this.lostPetRepository.find({
+                where: { isActive: true }
+            });
+
+            logger.info("[LostPetService] Guardando mascotas perdidas en cache");
+            await this.cacheService.set(CACHE_KEY_ALL_LOST_PETS, lostPets);
+
+            logger.info(`[LostPetService] Se obtuvieron ${lostPets.length} mascotas perdidas`);
             return lostPets;
         }catch(error){
             console.error("[LostPetService] Error al traer las mascotas perdidas");
@@ -37,12 +56,13 @@ export class LostPetsService {
             const lostPets = await this.lostPetRepository
                 .createQueryBuilder('lost_pet')
                 .where(`
-                ST_DWithin(
-                incident.location::geography,
-                ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography,
-                :radius
-                )    
-                `,{ lon,lat,radius })
+                    ST_DWithin(
+                        lost_pet.location::geography,
+                        ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography,
+                        :radius
+                    )
+                `, { lon, lat, radius })
+                .andWhere('lost_pet.isActive = true')
                 .getMany();
             console.log(`${lostPets} mascotas perdidas en un radio de ${radius} metros`);
             return lostPets;
@@ -73,6 +93,7 @@ export class LostPetsService {
             }
         });
         await this.lostPetRepository.save(newLostPet);
+        await this.cacheService.delete(CACHE_KEY_ALL_LOST_PETS);
         const template = generateLostPetEmailTemplate(lostPet);
         const options: EmailOptions = {
             to: "yepezjahir@gmail.com",

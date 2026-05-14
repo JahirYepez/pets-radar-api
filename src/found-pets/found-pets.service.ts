@@ -7,6 +7,10 @@ import type { FoundPetCDto } from 'src/core/interfaces/found-pet.interface';
 import { EmailService } from 'src/email/email.service';
 import { Repository } from 'typeorm';
 import { generateFoundPetEmailTemplate } from './templates/found-pet-email.template';
+import { CacheService } from 'src/cache/cache.service';
+import { logger } from 'src/config/logger';
+
+const CACHE_KEY_ALL_FOUND_PETS = 'found-pets:all';
 
 @Injectable()
 export class FoundPetsService {
@@ -15,14 +19,27 @@ export class FoundPetsService {
         private readonly foundPetRepository: Repository<FoundPet>,
         @InjectRepository(LostPet)
         private readonly lostPetRepository: Repository<LostPet>,
-        private readonly emailService: EmailService
+        private readonly emailService: EmailService,
+        private readonly cacheService: CacheService
     ) {}
 
     async getFoundPets(): Promise<FoundPet[]> {
         try {
-            console.log("[FoundPetService] Trayendo todas las mascotas encontradas...");
+            logger.info("[FoundPetService] Consultando mascotas encontradas en cache...");
+            const data = await this.cacheService.get<FoundPet[]>(CACHE_KEY_ALL_FOUND_PETS);
+
+            if (data && data.length > 0) {
+                logger.info("[FoundPetService] Mascotas encontradas en cache");
+                return data;
+            }
+
+            logger.info("[FoundPetService] Trayendo todas las mascotas encontradas...");
             const foundPets = await this.foundPetRepository.find();
-            console.log(`[FoundPetService] Se obtuvieron ${foundPets.length} mascotas encontradas`);
+
+            logger.info("[FoundPetService] Guardando mascotas encontradas en cache");
+            await this.cacheService.set(CACHE_KEY_ALL_FOUND_PETS, foundPets);
+
+            logger.info(`[FoundPetService] Se obtuvieron ${foundPets.length} mascotas encontradas`);
             return foundPets;
         } catch (error) {
             console.error("[FoundPetService] Error al traer las mascotas encontradas");
@@ -30,6 +47,7 @@ export class FoundPetsService {
             return [];
         }
     }
+
 
     async getFoundPetsByRadius(lat: number, lon: number, radius: number): Promise<LostPet[]> {
         try {
@@ -75,6 +93,27 @@ export class FoundPetsService {
         });
 
         await this.foundPetRepository.save(newFoundPet);
+
+        await this.cacheService.delete(CACHE_KEY_ALL_FOUND_PETS);
+
+        const nearbyLostPets = await this.lostPetRepository
+            .createQueryBuilder('lost_pet')
+            .where(`
+                ST_DWithin(
+                    lost_pet.location::geography,
+                    ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography,
+                    :radius
+                )
+            `, {
+                lon: foundPet.lon,
+                lat: foundPet.lat,
+                radius: 500
+            })
+            .andWhere('lost_pet.isActive = true')
+            .getMany();
+
+        logger.info(`[FoundPetService] Se encontraron ${nearbyLostPets.length} mascotas perdidas cercanas`);
+
 
         const template = generateFoundPetEmailTemplate(foundPet);
 
