@@ -10,6 +10,7 @@ export const dataSourceOptions : DataSourceOptions = {
     username: envs.DB_USER,
     database: envs.DB_NAME,
     password: envs.DB_PASSWORD,
+    ssl: envs.DB_SSL ? { rejectUnauthorized: false } : false,
     entities: [
         LostPet,
         FoundPet

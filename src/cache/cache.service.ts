@@ -4,10 +4,20 @@ import { envs } from 'src/config/envs';
 
 @Injectable()
 export class CacheService {
-    private readonly redis = new Redis({
-        host: envs.REDIS_HOST,
-        port: envs.REDIS_PORT
-    });
+    private readonly redis = this.createClient();
+
+    private createClient(): Redis {
+        if (envs.REDIS_URL) {
+            return new Redis(envs.REDIS_URL);
+        }
+
+        return new Redis({
+            host: envs.REDIS_HOST,
+            port: envs.REDIS_PORT,
+            password: envs.REDIS_PASSWORD || undefined,
+            tls: envs.REDIS_TLS ? {} : undefined
+        });
+    }
 
     async get<T>(key: string): Promise<T | null> {
         const data = await this.redis.get(key);

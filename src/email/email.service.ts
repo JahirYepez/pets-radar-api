@@ -5,7 +5,11 @@ import { EmailOptions } from 'src/core/interfaces/email-options.interface';
 
 @Injectable()
 export class EmailService {
-    private transporter =  nodemailer.createTransport({
+    private readonly isConfigured = Boolean(
+        envs.MAILER_SERVICE && envs.MAILER_EMAIL && envs.MAILER_PASSWORD
+    );
+
+    private transporter = nodemailer.createTransport({
         service:envs.MAILER_SERVICE,
         auth:{
             user: envs.MAILER_EMAIL,
@@ -15,6 +19,11 @@ export class EmailService {
 
     async sendEmail(options:EmailOptions) : Promise<Boolean> {
         try{
+            if (!this.isConfigured) {
+                console.warn("[EmailService] Mailer is not configured. Email was not sent.");
+                return false;
+            }
+
             await this.transporter.sendMail({
                 to: options.to,
                 subject: options.subject,
